@@ -408,7 +408,7 @@ DebugInput=1
 - Arbitrary action rebinding and full GTA IV/V gameplay features remain unimplemented.
 - Original DualShock 3 Bluetooth behavior on Windows depends heavily on the installed driver / Bluetooth stack.
 - Unknown generic DirectInput pads may require a custom raw mapping if they are not in the SDL controller database.
-- Controller glyph replacement is not currently included; the exported controller-family API is intended to support a separate prompt module cleanly.
+- The SA build formats supported action tokens as text for a mapped Logitech Dual Action while it owns input. Other devices use the game formatter. Graphical glyph replacement is not included; the exported controller-family API is intended to support a separate prompt module cleanly.
 - Gyro support is experimental and disabled by default.
 - Definitive Edition is not supported; this project targets the classic 32-bit RenderWare PC releases.
 

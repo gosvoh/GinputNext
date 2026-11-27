@@ -1,6 +1,7 @@
 // Exercise the production SDL path without GTA or a physical controller.
 #define SDL_MAIN_HANDLED
 #include "ControllerCore.h"
+#include "DualActionPrompts.h"
 #include <array>
 #include <cassert>
 #include <cmath>
@@ -31,6 +32,13 @@ int main(int argc, char** argv) {
     assert(raw);
     core.Tick();
     assert(core.IsConnected());
+    assert(core.IsMappedDualAction());
+    char message[] = "~y~~k~~PED_ANSWER_PHONE~~s~ / ~k~~UNKNOWN~ / ~k~~PED_SPRINT~";
+    gin::FormatDualActionPrompts(message, false, 0);
+    assert(std::strcmp(message, "~y~L1 (5)~s~ / ~k~~UNKNOWN~ / 2") == 0);
+    char modern[] = "~k~~PED_ANSWER_PHONE~ / ~k~~PED_LOCK_TARGET~";
+    gin::FormatDualActionPrompts(modern, true, 0);
+    assert(std::strcmp(modern, "~k~~PED_ANSWER_PHONE~ / L2 (7)") == 0);
     const unsigned buttons[] = {GIN_BTN_X, GIN_BTN_A, GIN_BTN_B, GIN_BTN_Y,
         GIN_BTN_LB, GIN_BTN_RB, 0, 0, GIN_BTN_BACK, GIN_BTN_START, GIN_BTN_L3, GIN_BTN_R3};
     for (int i = 0; i < 12; ++i) {
@@ -67,6 +75,7 @@ int main(int argc, char** argv) {
     assert(SDL_JoystickDetachVirtual(index) == 0);
     core.Tick();
     assert(!core.IsConnected());
+    assert(!core.IsMappedDualAction());
     core.Shutdown();
     std::puts("Virtual Dual Action passed through ControllerCore.");
 }

@@ -228,6 +228,7 @@ void ControllerCore::CloseDevice() {
     instanceId_ = -1;
     usingGeneric_ = false;
     gyroActive_ = false;
+    mappedDualAction_ = false;
     deviceName_.clear();
     state_ = {};
 }
@@ -258,6 +259,7 @@ bool ControllerCore::OpenGameController(int joystickIndex) {
     const auto vendor = joy ? sdl::JoystickGetVendor(joy) : 0;
     const auto product = joy ? sdl::JoystickGetProduct(joy) : 0;
 
+    mappedDualAction_ = vendor == 0x046D && product == 0xC216;
     if (joy) {
         char guid[64]{};
         sdl::JoystickGetGUIDString(sdl::JoystickGetGUID(joy), guid, sizeof(guid));
