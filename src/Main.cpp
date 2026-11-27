@@ -1,6 +1,11 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include "plugin.h"
+#ifdef GTASA
+#include "DualActionPrompts.h"
+#include "safetyhook.hpp"
+#include "InputContext.h"
+#endif
 #include "Config.h"
 #include "ControllerCore.h"
 #include "GTAAdapter.h"
@@ -40,6 +45,31 @@ bool g_shutdown = false;
 std::string g_gameDir;
 std::string g_moduleDir;
 std::string g_configPath;
+
+#ifdef GTASA
+SafetyHookInline g_promptHook;
+
+void __cdecl FormatMessage(char* text) {
+    if (g_core.IsMappedDualAction() && g_inputArbitration.ControllerAllowed()) {
+        if (const auto* pad = CPad::GetPad(0)) {
+            const bool modern = g_config.controlProfile == ControlProfile::Modern && !FrontendActive();
+            FormatDualActionPrompts(text, modern, pad->Mode);
+        }
+    }
+    g_promptHook.ccall<void>(text);
+}
+
+void InstallPromptHook() {
+    // CMessages::InsertPlayerControlKeysInString on the supported SA 1.0 US builds.
+    auto* entry = reinterpret_cast<unsigned char*>(plugin::GetGlobalAddress(0x69E160));
+    if (*entry == 0xE9 || *entry == 0xEB || (*entry == 0xFF && entry[1] == 0x25)) {
+        Log("Controller prompts skipped: message formatter already redirected.");
+        return;
+    }
+    g_promptHook = safetyhook::create_inline(entry, reinterpret_cast<void*>(&FormatMessage));
+    Log("Dual Action message prompts: %s", g_promptHook ? "installed" : "hook unavailable");
+}
+#endif
 
 const char* GameTag() {
 #if defined(GTA3)
@@ -216,6 +246,9 @@ void OnInit() {
         return;
     }
 
+#ifdef GTASA
+    InstallPromptHook();
+#endif
     if (!g_modernControlsHook.Install(&g_core, &g_config)) {
         g_config.controlProfile = ControlProfile::Classic;
         Log("WARNING: modern hooks unavailable; Classic selected.");
@@ -244,6 +277,9 @@ void ShutdownRuntime() {
     const bool hadInputHook = g_inputHook.IsInstalled();
 
     // Restore executable call sites before unloading any code they target.
+#ifdef GTASA
+    g_promptHook.reset();
+#endif
     g_modernControlsHook.Restore();
 #if defined(GTA3)
     g_gta3WeaponAimHook.Restore();

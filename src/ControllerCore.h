@@ -17,6 +17,7 @@ public:
     void ApplyLiveConfig(const Config& config);
 
     const UnifiedState& State() const { return state_; }
+    bool IsMappedDualAction() const { return mappedDualAction_; }
     bool IsConnected() const { return state_.connected; }
     GIN_ControllerFamily Family() const { return state_.family; }
 
@@ -50,6 +51,7 @@ private:
     SDL_Joystick* joystick_ = nullptr;
     SDL_Haptic* haptic_ = nullptr;
     SDL_JoystickID instanceId_ = -1;
+    bool mappedDualAction_ = false;
     bool usingGeneric_ = false;
     int scanCountdown_ = 0;
     bool gyroActive_ = false;
