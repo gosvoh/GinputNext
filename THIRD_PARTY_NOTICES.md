@@ -16,7 +16,7 @@ Project: `DK22Pac/plugin-sdk`
 Pinned target commit:
 `624a6a49265fd7a6fc63bda1611013ceabeacb8a`
 
-Plugin-SDK is supplied separately by the user. This source tree includes no
+The GTASA workflow compiles the pinned SDK and links its static library. This source tree includes no
 Plugin-SDK source or binaries.
 
 The target game-specific libraries are:
@@ -24,3 +24,9 @@ The target game-specific libraries are:
 - GTA III: `plugin_iii.lib`
 - Vice City: `plugin_vc.lib`
 - San Andreas: `plugin.lib`
+
+## Controller mappings
+
+SDL_GameControllerDB by the SDL community, revision
+`42f28e22d20761e7004e8db91c4ad86402fdf600`, is distributed under the
+zlib license. The archive includes the upstream notices in `licenses/`.

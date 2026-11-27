@@ -81,6 +81,15 @@ void __cdecl UpdatePadsBridge() {
     g_core.Tick();
 
     if (g_config.debugInput) {
+        const auto& state = g_core.State();
+        static DWORD lastSample = 0;
+        const DWORD now = GetTickCount();
+        if (state.connected && now - lastSample >= 500) {
+            Log("sticks L=(%.2f,%.2f) R=(%.2f,%.2f) triggers=(%.2f,%.2f)",
+                state.leftX, state.leftY, state.rightX, state.rightY,
+                state.leftTrigger, state.rightTrigger);
+            lastSample = now;
+        }
         static std::uint32_t lastMask = 0;
         const std::uint32_t mask = ButtonMask(g_core.State());
         if (mask != lastMask) {
