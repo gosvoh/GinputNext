@@ -122,6 +122,11 @@ int ControllerCore::LoadMappingFile(const std::string& path) {
     while (std::getline(f, line)) {
         if (!line.empty() && line.back() == '\r') line.pop_back();
         if (line.empty() || line[0] == '#') continue;
+        // SDL_GameControllerAddMapping accepts a single mapping without the
+        // platform filtering SDL performs when loading a database via RWops.
+        const auto platform = line.find(",platform:");
+        if (platform != std::string::npos &&
+            line.substr(platform + 10, line.find(',', platform + 10) - (platform + 10)) != "Windows") continue;
         if (sdl::GameControllerAddMapping(line.c_str()) >= 0) ++accepted;
     }
     return accepted;
@@ -182,7 +187,7 @@ bool ControllerCore::Init(const Config& config, const std::string& moduleDir, co
         }
     }
 
-    InstallBuiltInMappings();
+    if (dbCount <= 0) Log("No external Windows mappings loaded; using SDL defaults and device fallbacks.");
 
     initialized_ = true;
     scanCountdown_ = 0;
@@ -254,6 +259,12 @@ bool ControllerCore::OpenGameController(int joystickIndex) {
     const auto vendor = joy ? sdl::JoystickGetVendor(joy) : 0;
     const auto product = joy ? sdl::JoystickGetProduct(joy) : 0;
 
+    if (joy) {
+        char guid[64]{};
+        sdl::JoystickGetGUIDString(sdl::JoystickGetGUID(joy), guid, sizeof(guid));
+        Log("SDL GameController: guid=%s axes=%d buttons=%d hats=%d", guid,
+            sdl::JoystickNumAxes(joy), sdl::JoystickNumButtons(joy), sdl::JoystickNumHats(joy));
+    }
     Log("Controller connected: name=\"%s\" type=%d family=%d vid=%04X pid=%04X gyro=%d",
         deviceName_.c_str(), static_cast<int>(type), static_cast<int>(state_.family),
         vendor, product, gyroActive_ ? 1 : 0);

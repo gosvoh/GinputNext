@@ -57,14 +57,14 @@ try {
         throw "vswhere.exe not found. Install Visual Studio 2022 / Build Tools."
     }
 
-    $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+    $msbuild = & $vswhere -version '[17.0,18.0)' -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
     if (-not $msbuild) {
         throw "MSBuild not found."
     }
 
-    $dumpbin = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Tools\MSVC\**\bin\Hostx64\x86\dumpbin.exe | Select-Object -First 1
+    $dumpbin = & $vswhere -version '[17.0,18.0)' -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Tools\MSVC\**\bin\Hostx64\x86\dumpbin.exe | Select-Object -First 1
     if (-not $dumpbin) {
-        $dumpbin = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Tools\MSVC\**\bin\Hostx86\x86\dumpbin.exe | Select-Object -First 1
+        $dumpbin = & $vswhere -version '[17.0,18.0)' -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Tools\MSVC\**\bin\Hostx86\x86\dumpbin.exe | Select-Object -First 1
     }
     if (-not $dumpbin) {
         throw "x86 dumpbin.exe not found. Install the VS2022 x86/x64 C++ tools."
@@ -122,12 +122,8 @@ try {
         "/p:SDL2_DIR=$SDL2"
     )
 
-    # Start-Process gives us a reliable process ExitCode instead of relying on
-    # a stale $LASTEXITCODE value after mixed PowerShell/native calls.
-    $proc = Start-Process -FilePath $msbuild -ArgumentList $args -Wait -PassThru -NoNewWindow
-    if ($proc.ExitCode -ne 0) {
-        throw "MSBuild failed for $Project with exit code $($proc.ExitCode). See $LogPath"
-    }
+    & $msbuild @args
+    if ($LASTEXITCODE -ne 0) { throw "MSBuild failed for $Project with exit code $LASTEXITCODE" }
 
     $gameOut = if ($Project -eq "GInputNext_GTA3") { "GTA3" } elseif ($Project -eq "GInputNext_GTAVC") { "GTAVC" } else { "GTASA" }
     $outDir = Join-Path $Root ("dist\" + $gameOut + "\GInputNext")
@@ -142,12 +138,17 @@ try {
         }
     }
 
-    $outHeaders = & $dumpbin /headers $outDll 2>&1 | Out-String
-    if ($LASTEXITCODE -ne 0) {
-        throw "dumpbin failed on packaged SDL DLL with exit code $LASTEXITCODE"
-    }
-    if ($outHeaders -notmatch '(?im)\b14C machine \(x86\)') {
-        throw "Packaged GInputNext.SDL2.dll is not the required 32-bit x86 DLL."
+    foreach ($binary in @($outAsi, $outDll)) {
+        $headers = & $dumpbin /headers $binary | Out-String
+        if ($LASTEXITCODE -or $headers -notmatch '(?im)\b14C machine \(x86\)') {
+            throw "Expected an x86 PE: $binary"
+        }
+        $deps = & $dumpbin /dependents $binary | Out-String
+        if ($LASTEXITCODE) { throw "Cannot read imports: $binary" }
+        Write-Host $deps
+        if ($deps -match '(?im)^\s*(msvcp\d|msvcr\d|vcruntime|concrt|vcomp|mfc\d|ucrtbased)') {
+            throw "Unexpected Visual C++ redistributable or debug runtime dependency: $binary"
+        }
     }
 
     Write-Host ""

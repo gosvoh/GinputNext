@@ -23,10 +23,7 @@ Write-Host "Controller DB path: $outFile"
 
 function Test-ControllerDB {
     if (-not (Test-Path $outFile)) { return $false }
-    $text = Get-Content -Raw $outFile
-    if ($text -notmatch '# Game Controller DB for SDL') { return $false }
-    if ($text -notmatch 'platform:Windows') { return $false }
-    return $true
+    return (Get-FileHash $outFile -Algorithm SHA256).Hash -eq '02eea6f9845be40d84c43949b747c4ee07b4876577512d43ae658eedc149857a'
 }
 
 New-Item -ItemType Directory -Force -Path $third | Out-Null

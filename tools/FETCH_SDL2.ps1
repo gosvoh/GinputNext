@@ -75,6 +75,10 @@ Write-Host "Downloading official SDL2 $version Visual C++ development package...
 Write-Host $url
 Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $zip
 
+if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne 'af347939395a58b365846aaea27391e69f9ec9d4dd650d6ac40802159b418a6e') {
+    throw "SDL2 archive checksum mismatch."
+}
+
 $temp = Join-Path $third "_sdl_extract"
 if (Test-Path $temp) { Remove-Item -Recurse -Force $temp }
 Expand-Archive -Path $zip -DestinationPath $temp -Force
