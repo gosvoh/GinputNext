@@ -79,8 +79,8 @@ jobs:
           Copy-Item plugin-sdk/safetyhook/LICENSE.txt package/licenses/SafetyHook.txt
           Compress-Archive package/* GInputNext-GTASA.zip
           Get-FileHash GInputNext-GTASA.zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
-          name: GInputNext-GTASA
+          archive: false
           path: GInputNext-GTASA.zip
           if-no-files-found: error
