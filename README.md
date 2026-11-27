@@ -1,5 +1,7 @@
 # GInputNext
 
+[Установка и диагностика на русском](README.ru.md)
+
 Modern controller support for the classic PC versions of **Grand Theft Auto III**, **Grand Theft Auto: Vice City**, and **Grand Theft Auto: San Andreas**.
 
 GInputNext is a shared x86 Plugin-SDK controller backend built around **SDL2**. It is intended as a modern successor in spirit to older XInput-focused controller mods: Xbox, PlayStation, Nintendo, and legacy DirectInput-style pads go through one normalized input layer while GTA keeps its normal keyboard, mouse, frontend, gameplay, and script logic.

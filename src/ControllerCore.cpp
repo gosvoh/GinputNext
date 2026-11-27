@@ -124,9 +124,8 @@ int ControllerCore::LoadMappingFile(const std::string& path) {
         if (line.empty() || line[0] == '#') continue;
         // SDL_GameControllerAddMapping accepts a single mapping without the
         // platform filtering SDL performs when loading a database via RWops.
-        const auto platform = line.find(",platform:");
-        if (platform != std::string::npos &&
-            line.substr(platform + 10, line.find(',', platform + 10) - (platform + 10)) != "Windows") continue;
+        if (line.find(",platform:") != std::string::npos &&
+            (line + ",").find(",platform:Windows,") == std::string::npos) continue;
         if (sdl::GameControllerAddMapping(line.c_str()) >= 0) ++accepted;
     }
     return accepted;
@@ -305,7 +304,7 @@ bool ControllerCore::OpenGenericJoystick(int joystickIndex) {
     return true;
 }
 
-bool ControllerCore::TryInstallGC201Mapping(int joystickIndex) {
+bool ControllerCore::TryInstallKnownMapping(int joystickIndex) {
     if (sdl::IsGameController(joystickIndex)) return false;
 
     SDL_Joystick* probe = sdl::JoystickOpen(joystickIndex);
@@ -328,7 +327,9 @@ bool ControllerCore::TryInstallGC201Mapping(int joystickIndex) {
     const bool gc201ClassicDInput =
         ContainsNoCase(name, "gc201") && axes == 4 && buttons >= 12 && hats >= 1;
 
-    if (!gc201ClassicDInput) {
+    const bool dualAction = vendor == 0x046D && product == 0xC216 &&
+        axes == 4 && buttons == 12 && hats == 1;
+    if (!gc201ClassicDInput && !dualAction) {
         sdl::JoystickClose(probe);
         return false;
     }
@@ -336,7 +337,10 @@ bool ControllerCore::TryInstallGC201Mapping(int joystickIndex) {
     std::string mapping;
     mapping.reserve(512);
     mapping += guidText;
-    mapping += ",GC201 Controller1.00 (GInputNext auto),";
+    const char* model = dualAction ? "Logitech Dual Action" : "GC201 Controller1.00";
+    mapping += ",";
+    mapping += model;
+    mapping += " (GInputNext auto),";
     mapping += "a:b1,b:b2,x:b0,y:b3,";
     mapping += "back:b8,start:b9,";
     if (buttons >= 13) mapping += "guide:b12,";
@@ -351,13 +355,13 @@ bool ControllerCore::TryInstallGC201Mapping(int joystickIndex) {
 
     const int result = sdl::GameControllerAddMapping(mapping.c_str());
     if (result < 0) {
-        Log("GC201 auto-map failed: %s", sdl::GetError());
+        Log("%s auto-map failed: %s", model, sdl::GetError());
         return false;
     }
 
-    Log("GC201 auto-map installed: Square=b0 Cross=b1 Circle=b2 Triangle=b3 "
+    Log("%s auto-map installed: Square=b0 Cross=b1 Circle=b2 Triangle=b3 "
         "L1=b4 R1=b5 L2=b6 R2=b7 Select=b8 Start=b9 L3=b10 R3=b11 Guide=%s",
-        buttons >= 13 ? "b12" : "none");
+        model, buttons >= 13 ? "b12" : "none");
     return true;
 }
 
@@ -366,7 +370,7 @@ void ControllerCore::InstallBuiltInMappings() {
     int installed = 0;
     for (int i = 0; i < count; ++i) {
         if (sdl::IsGameController(i)) continue;
-        if (TryInstallGC201Mapping(i)) ++installed;
+        if (TryInstallKnownMapping(i)) ++installed;
     }
     if (installed > 0) {
         Log("Installed %d built-in controller mapping(s) before device open.", installed);

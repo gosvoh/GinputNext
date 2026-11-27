@@ -25,7 +25,7 @@ public:
 
 private:
     void InstallBuiltInMappings();
-    bool TryInstallGC201Mapping(int joystickIndex);
+    bool TryInstallKnownMapping(int joystickIndex);
     void ScanAndOpen();
     bool OpenGameController(int joystickIndex);
     bool OpenGenericJoystick(int joystickIndex);

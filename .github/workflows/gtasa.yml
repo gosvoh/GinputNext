@@ -27,6 +27,7 @@ jobs:
           $finder = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
           $vs = & $finder -version '[17.0,18.0)' -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
           if (!$vs) { throw 'Visual Studio 2022 missing' }
+          "VS_INSTALL=$vs" >> $env:GITHUB_ENV
           "$vs\MSBuild\Current\Bin" >> $env:GITHUB_PATH
           $version = (Get-Content "$vs\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt").Trim()
           "version=$version" >> $env:GITHUB_OUTPUT
@@ -49,6 +50,16 @@ jobs:
       - run: PREPARE_DEPS.bat --no-pause
         shell: cmd
       - run: python tests/test_windows_mapping.py third_party/SDL_GameControllerDB/gamecontrollerdb.txt
+      - name: Exercise Dual Action through SDL2 and ControllerCore
+        shell: cmd
+        run: |
+          call "%VS_INSTALL%\Common7\Tools\VsDevCmd.bat" -arch=x86 -host_arch=x64 || exit /b 1
+          set "SDL=%CD%\third_party\SDL2-2.32.10"
+          mkdir input-test
+          copy "%SDL%\lib\x86\SDL2.dll" input-test || exit /b 1
+          copy third_party\SDL_GameControllerDB\gamecontrollerdb.txt input-test\GInputNext.gamecontrollerdb.txt || exit /b 1
+          cl /nologo /std:c++17 /EHsc /MT /DNOMINMAX /Isrc /I"%SDL%\include" tests\dual_action_virtual.cpp src\ControllerCore.cpp src\SDL2Dyn.cpp src\Log.cpp "%SDL%\lib\x86\SDL2.lib" /Fe:input-test\input-test.exe || exit /b 1
+          input-test\input-test.exe "%CD%\input-test"
       - run: BUILD_GTASA.bat --no-pause
         shell: cmd
       - name: Package runtime files and notices
